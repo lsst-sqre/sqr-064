@@ -71,7 +71,7 @@ container builds, the changes are fed into ``prod_update`` either by
 rebase or cherry-picking.  (At the moment, ``main`` and ``prod_update``
 should generally be the same; if we find ourselves in another situation
 like we did near the end of Jupyterlab 2.x, it is possible that ``main``
-will have severly diverged and cherry-picking changes will be
+will have severely diverged and cherry-picking changes will be
 necessary.)
 
 Once ``prod_update`` is ready, changes from that branch are merged into
@@ -104,10 +104,10 @@ The targets are one of:
 
 #. push -- build and push the container.
 
-"push" is a synonym for "all" and is the default.  Note that we assume
-that the building user already has appropriate push credentials for the
-repository to which the image is pushed, and that no ``docker login`` is
-needed.
+"push" is a synonym for "all" and is the default.  "build" is a synonym
+for "image".  Note that we assume that the building user already has
+appropriate push credentials for the repository to which the image is
+pushed, and that no ``docker login`` is needed.
 
 Dockerfile template substitution
 --------------------------------
