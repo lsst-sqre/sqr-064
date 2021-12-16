@@ -42,12 +42,6 @@
 
 .. sectnum::
 
-.. TODO: Delete the note below before merging new content to the main branch.
-
-.. note::
-
-   **This technote is not yet published.**
-
    This technote documents how sciplat-lab (the JupyterLab RSP container) is built.
 
 .. Add content here.
@@ -64,19 +58,33 @@ repository <https://github.com/lsst-sqre/sciplat-lab.git>`_.
 Branch Conventions
 ------------------
 
-Development of the Lab container contents typically happens on a ticket
-branch, which is then PRed into ``main``.  Once the resulting containers
-are built and tested and we feel they are ready to be promoted to
-container builds, the changes are fed into ``prod_update`` either by
-rebase or cherry-picking.  (At the moment, ``main`` and ``prod_update``
-should generally be the same; if we find ourselves in another situation
-like we did near the end of Jupyterlab 2.x, it is possible that ``main``
-will have severely diverged and cherry-picking changes will be
-necessary.)
+Standard Lab containers (that is, dailies, weeklies, release candidates,
+and releases) are built from the ``prod`` branch.  Experimental
+containers may be built from any branch.  The build process enforces
+this condition, and will force the tag to an experimental one when
+building from a non-prod branch.
 
-Once ``prod_update`` is ready, changes from that branch are merged into
-``prod``.  Our current (Jenkins) CI process builds containers from
-``prod`` rather than ``main``.
+Note that from the GitHub perspective, ``prod`` rather than ``main`` is
+the default branch.
+
+Updating the Default Branch
+---------------------------
+
+#. Do your work in a ticket branch, as with any other repository.
+#. PR that ticket branch into ``main``.  Note that the default branch to
+   PR into is going to be ``prod`` and you will have to change the
+   selection to ``main``.
+#. Rebase (if possible) or cherry-pick the changes from ``main`` into
+   ``prod_update``.  At the time of writing, there's no difference
+   between ``main`` and ``prod_update``, but as we migrate between major
+   versions of JupyterLab, it is possible for the two branches to
+   diverge significantly (as they did in the JL2-JL3 transition).
+#. Merge ``prod_update`` into ``prod``.
+
+It is worth noting that the only place we use a PR in this process is
+getting changes into ``main``.  Typically you would build an
+experimental container from your branch, test that, and once satisfied,
+proceed with the PR.
 
 Build Process
 =============
@@ -108,6 +116,11 @@ The targets are one of:
 for "image".  Note that we assume that the building user already has
 appropriate push credentials for the repository to which the image is
 pushed, and that no ``docker login`` is needed.
+
+If the image is built from a branch that is not ``prod``, and the
+``supplementary`` tag is not specified, the supplementary tag will be
+set to a value derived from the branch name.  This prevents building
+standard containers from branches other than ``prod``.
 
 Dockerfile template substitution
 --------------------------------
