@@ -42,18 +42,41 @@
 
 .. sectnum::
 
-   This technote documents how sciplat-lab (the JupyterLab RSP container) is built.
+This technote documents how sciplat-lab (the JupyterLab RSP container) is built.
 
 .. Add content here.
 
 Repository
 ==========
 
+The Lab container resides at `the LSST SQuaRE GitHub sciplat-lab
+repository <https://github.com/lsst-sqre/sciplat-lab.git>`_.
+
 Layout
 ------
 
-The Lab container resides at `the LSST SQuaRE Github sciplat-lab
-repository <https://github.com/lsst-sqre/sciplat-lab.git>`_.
+There are several different categories of files in the repository
+directory.
+
+#. ``Makefile`` and ``Dockerfile.template`` directly control the build
+   process; GNU Make is used to generate a ``Dockerfile`` from the
+   template and arguments, and then ``docker build`` generates the
+   ``sciplat-lab`` container.  ``bld`` provides compatibility with our
+   old build system and is a wrapper for ``make``; it will be removed
+   soon.
+
+#. The ``stage`` shell files are executed during the ``docker build``
+   and each control a fairly large section of the container build.
+   ``texlive.profile`` is used to control the build of ``TeX`` in the
+   container.
+
+#. The other executable files, except for ``lsstlaunch.bash``, are used
+   during JupyterLab startup.  The most important, and most likely to
+   need modification, is ``runlab.sh``, which sets up the JupyterLab
+   environment prior to launching the Lab.
+
+#. Everything else is copied into the container during build and
+   controls various runtime behaviors of the Lab.
 
 Branch Conventions
 ------------------
@@ -86,6 +109,18 @@ getting changes into ``main``.  Typically you would build an
 experimental container from your branch, test that, and once satisfied,
 proceed with the PR.
 
+Once your changes are on ``main``, in the usual case where ``main`` and
+``prod_update`` do not differ, the following incantation will suffice::
+
+    git checkout main && \
+    git pull && \
+    git checkout prod_update && \
+    git rebase main && \
+    git push && \
+    git checkout prod && \
+    git merge prod_update && \
+    git push
+
 Build Process
 =============
 
@@ -105,22 +140,21 @@ The arguments are as follows:
 
 The targets are one of:
 
-#. clean -- remove the generated ``Dockerfile``.  Not terribly useful on
-   its own, but a good first step before running the next target
-   (because the template rarely changes, ``make`` cannot tell on its own
-   that the ``Dockerfile`` needs rebuilding when the arguments change).
+#. ``clean`` -- remove the generated ``Dockerfile``.  Not terribly
+   useful on its own, but a good first step before running the next
+   target (because the template rarely changes, ``make`` cannot tell on
+   its own that the ``Dockerfile`` needs rebuilding when the arguments
+   change).
+#. ``dockerfile`` -- just generate the Dockerfile from the template and
+   the arguments.  Do not build or push.
+#. ``image`` -- build the Lab container, but do not push it.
+#. ``push`` -- build and push the container.
 
-#. dockerfile -- just generate the Dockerfile from the template and the
-   arguments.  Do not build or push.
-
-#. image -- build the Lab container, but do not push it.
-
-#. push -- build and push the container.
-
-"push" is the default, and "all" is a synonym for it.  "build" is a
-synonym for "image".  Note that we assume that the building user already
-has appropriate push credentials for the repository to which the image
-is pushed, and that no ``docker login`` is needed.
+``push`` is the default, and ``all`` is a synonym for it.  ``build`` is a
+synonym for ``image``.  Note that we assume that the building user
+already has appropriate push credentials for the repository to which the
+image is pushed, and that any necessary ``docker login`` has already
+been performced.
 
 If the image is built from a branch that is not ``prod``, and the
 ``supplementary`` tag is not specified, the supplementary tag will be
@@ -131,28 +165,36 @@ Dockerfile template substitution
 --------------------------------
 `Dockerfile.template
 <https://github.com/lsst-sqre/sciplat-lab/blob/main/Dockerfile.template>`_
-looks like it's ready for Jinja 2: we're substituting ``{{TAG}}``,
-``{{IMAGE}}``, and ``{{VERSION}}``.  It's nothing that sophisticated.
-We just run ``sed`` in the ``dockerfile`` target of the `Makefile
+substitutes ``{{TAG}}``, ``{{IMAGE}}``, and ``{{VERSION}}``.  Despite
+the fact that we use double-curly-brackets, the substitution is nothing
+as sophisticated as Jinja 2: instead, we We just run ``sed`` in the
+``dockerfile`` target of the `Makefile
 <https://github.com/lsst-sqre/sciplat-lab/blob/main/Makefile>`_.
 
 
 Examples
 --------
 
-Build and push the weekly 2021_50 container: ``make tag=w_2021_50``.
+Build and push the weekly 2021_50 container::
+
+    make tag=w_2021_50
 
 Build and push an experimental container with a ``newnumpy``
-supplementary tag: ``make tag=w_2021_50 supplementary=newnumpy``.
+supplementary tag::
 
-Just create the Dockerfile for w_2021_49: ``make dockerfile
-tag=w_2021_49``.
+    make tag=w_2021_50 supplementary=newnumpy
 
-Build the ``newnumpy`` container, but don't push it: ``make image
-tag=w_2021_50 supplementary=newnumpy``.
+Just create the ``Dockerfile`` for ``w_2021_49``::
 
-Build and push w_2021_50 to ghcr.io: ``make tag=w_2021_50
-image=ghcr.io/lsst-sqre/sciplat-lab``.
+    make dockerfile tag=w_2021_49
+
+Build the ``newnumpy`` container, but don't push it::
+
+    make image tag=w_2021_50 supplementary=newnumpy
+
+Build and push ``w_2021_50`` to ``ghcr.io``::
+
+    make tag=w_2021_50 image=ghcr.io/lsst-sqre/sciplat-lab``.
 
 
 Modifying Lab container Contents
@@ -169,38 +211,40 @@ want is actually one of the container setup-at-runtime pieces.
 stage*.sh scripts
 -----------------
 
-Most of the action in the Dockerfile comes from five shell scripts
+Most of the action in the ``Dockerfile`` comes from five shell scripts
 executed by ``docker build`` as ``RUN`` actions.
 
 These are, in order:
 
-#. rpm -- we will always be building on top of ``centos`` in the current
-   regime.  This stage first reinstalls all the system packages but with
-   man pages this time (the Stack container isn't really designed for
-   interactive use, but ours is), and then adds some RPM packages we
-   require, or at least find helpful, for our user environment.
-#. os -- this installs os-level packages that are not packaged via RPM.
-   Currently the biggest and hairiest of these is TeXLive--the conda TeX
-   packaging story is not good, and if we don't install TeXLive a bunch
-   of the export-as options in JupyterLab will not work.
-#. py -- this is probably where you're going to be spending your time.
-   Mamba is faster and reports errors better than conda, so we install
-   and then use it.  Anything that is packaged as a Conda package should
-   be installed from conda-forge.  However, that's not everything we
-   need.  Thus, the first thing we do is add all the Conda packages we
-   need.  Then we do a pip install of the rest, and a little bit of
-   bookkeeping to create a kernel for the Stack Python.  It is likely
-   that what you need to do will be done by inserting (or pinning
-   versions of) python packages in the mamba or pip sections.
-#. jup -- this is for installation of Jupyter packages--mostly Lab
-   extensions, but there are also server and notebook extensions we rely
-   upon.  Use pre-built Lab extensions if at all possible, which will
-   mean they are packaged as conda-forge or pip-installable packages and
-   handled in the previous Python stage.
-#. ro -- this is Rubin Observatory-specific setup.  This, notably,
-   creates quite a big layer because, among other things, it checks out
-   the tutorial notebooks as they existed at build time, and people keep
-   checking large figure outputs into these notebooks.
+#. ``stage1-rpm.sh`` -- we will always be building on top of ``centos``
+   in the current regime.  This stage first reinstalls all the system
+   packages but with man pages this time (the Stack container isn't
+   really designed for interactive use, but ours is), and then adds some
+   RPM packages we require, or at least find helpful, for our user
+   environment.
+#. ``stage2-os.sh`` -- this installs os-level packages that are not
+   packaged via RPM.  Currently the biggest and hairiest of these is
+   TeXLive--the conda TeX packaging story is not good, and if we don't
+   install TeXLive a bunch of the export-as options in JupyterLab will
+   not work.
+#. ``stage3-py.sh`` -- this is probably where you're going to be
+   spending your time.  Mamba is faster and reports errors better than
+   conda, so we install and then use it.  Anything that is packaged as a
+   Conda package should be installed from conda-forge.  However, that's
+   not everything we need.  Thus, the first thing we do is add all the
+   Conda packages we need.  Then we do a pip install of the rest, and a
+   little bit of bookkeeping to create a kernel for the Stack Python.
+   It is likely that what you need to do will be done by inserting (or
+   pinning versions of) python packages in the mamba or pip sections.
+#. ``stage4-jup.sh`` -- this is for installation of Jupyter
+   packages--mostly Lab extensions, but there are also server and
+   notebook extensions we rely upon.  Use pre-built Lab extensions if at
+   all possible, which will mean they are packaged as conda-forge or
+   pip-installable packages and handled in the previous Python stage.
+#. ``stage5-ro.sh`` -- this is Rubin Observatory-specific setup.  This,
+   notably, creates quite a big layer because, among other things, it
+   checks out the tutorial notebooks as they existed at build time, and
+   people keep checking large figure outputs into these notebooks.
 
 Other files
 -----------
@@ -208,7 +252,8 @@ The rest of the files in this directory are either things copied to
 various well-known locations (for example, all the ``local*.sh`` files
 end up in ``/etc/profile.d``) or they control various aspects of the Lab
 startup process.  For the most part they are moved into the container by
-``COPY`` statements in the Dockerfile.
+``COPY`` statements in the ``Dockerfile``.  They do not often need
+modification.
 
 `runlab.sh
 <https://github.com/lsst-sqre/sciplat-lab/blob/main/runlab.sh>`_ is the
