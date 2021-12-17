@@ -105,6 +105,11 @@ The arguments are as follows:
 
 The targets are one of:
 
+#. clean -- remove the generated ``Dockerfile``.  Not terribly useful on
+   its own, but a good first step before running the next target
+   (because the template rarely changes, ``make`` cannot tell on its own
+   that the ``Dockerfile`` needs rebuilding when the arguments change).
+
 #. dockerfile -- just generate the Dockerfile from the template and the
    arguments.  Do not build or push.
 
@@ -112,10 +117,10 @@ The targets are one of:
 
 #. push -- build and push the container.
 
-"push" is a synonym for "all" and is the default.  "build" is a synonym
-for "image".  Note that we assume that the building user already has
-appropriate push credentials for the repository to which the image is
-pushed, and that no ``docker login`` is needed.
+"push" is the default, and "all" is a synonym for it.  "build" is a
+synonym for "image".  Note that we assume that the building user already
+has appropriate push credentials for the repository to which the image
+is pushed, and that no ``docker login`` is needed.
 
 If the image is built from a branch that is not ``prod``, and the
 ``supplementary`` tag is not specified, the supplementary tag will be
