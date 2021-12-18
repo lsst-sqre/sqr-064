@@ -154,7 +154,7 @@ The targets are one of:
 synonym for ``image``.  Note that we assume that the building user
 already has appropriate push credentials for the repository to which the
 image is pushed, and that any necessary ``docker login`` has already
-been performced.
+been performed.
 
 If the image is built from a branch that is not ``prod``, and the
 ``supplementary`` tag is not specified, the supplementary tag will be
