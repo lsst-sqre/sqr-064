@@ -167,7 +167,7 @@ Dockerfile template substitution
 <https://github.com/lsst-sqre/sciplat-lab/blob/main/Dockerfile.template>`_
 substitutes ``{{TAG}}``, ``{{IMAGE}}``, and ``{{VERSION}}``.  Despite
 the fact that we use double-curly-brackets, the substitution is nothing
-as sophisticated as Jinja 2: instead, we We just run ``sed`` in the
+as sophisticated as Jinja 2: instead, we just run ``sed`` in the
 ``dockerfile`` target of the `Makefile
 <https://github.com/lsst-sqre/sciplat-lab/blob/main/Makefile>`_.
 
