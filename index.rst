@@ -134,6 +134,19 @@ The arguments are as follows:
    ``r`` in the output version.
 #. ``image`` -- optional: this is the name of the image you're building
    and pushing.  It defaults to ``docker.io/lsstsqre/sciplat-lab``.
+#. ``input`` -- optional: this is the name, and any tag prefix, of the
+   input image you're starting with.  It defaults to
+   ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
+
+   Note that if there is no tag prefix, it should end with a colon, and
+   that if you do this, you're on your own: SQuaRE expects its
+   containers to be built on top of the DM stack image.
+
+   If you're just adding things to the stack image for your input
+   container , you are likely to be fine, but it's entirely possible to
+   introduce version incompatibilities while so doing.  It is certainly
+   not going to work if you start with something that isn't based on the
+   stack image.
 #. ``supplementary`` -- optional: if specified, this turns the build into an
    experimental build where the tag starts with ``exp_`` and ends with
    ``_<supplementary>``.
@@ -194,7 +207,12 @@ Build the ``newnumpy`` container, but don't push it::
 
 Build and push ``w_2021_50`` to ``ghcr.io``::
 
-    make tag=w_2021_50 image=ghcr.io/lsst-sqre/sciplat-lab``.
+    make tag=w_2021_50 image=ghcr.io/lsst-sqre/sciplat-lab
+
+Build and push a Telescope and Site image based on their ``sal-sciplat`` image
+(note differing tag format)::
+
+   make tag=w_2021_49_c0023.008 input=ts-dockerhub.lsst.org/sal-sciplat: image=ts-dockerhub.lsst.org/sal-sciplat-lab
 
 
 Modifying Lab container Contents
