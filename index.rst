@@ -132,8 +132,10 @@ The arguments are as follows:
 #. ``tag`` -- mandatory: this is the tag on the input DM Stack container,
    e.g. ``w_2021_50``.  If it starts with a ``v`` that ``v`` becomes an
    ``r`` in the output version.
-#. ``image`` -- optional: this is the name of the image you're building
-   and pushing.  It defaults to ``docker.io/lsstsqre/sciplat-lab``.
+#. ``image`` -- optional: this is the URI for the image you're building
+   and pushing.  It defaults to ``docker.io/lsstsqre/sciplat-lab``.  It
+   may be a comma-separated list of URIs, if you are pushing to multiple
+   targets.
 #. ``input`` -- optional: this is the name, and any tag prefix, of the
    input image you're starting with.  It defaults to
    ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
@@ -219,6 +221,12 @@ Build and push ``w_2021_50`` to ``ghcr.io``:
 .. code-block:: sh
 
    make tag=w_2021_50 image=ghcr.io/lsst-sqre/sciplat-lab
+
+Build and push ``w_2021_50`` to both ``docker.io`` and ``ghcr.io``:
+
+.. code-block:: sh
+
+   make tag=w_2021_50 image=docker.io/lsstsqre/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab
 
 Build and push a Telescope and Site image based on their ``sal-sciplat`` image
 (note differing tag format):
