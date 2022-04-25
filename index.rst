@@ -213,6 +213,8 @@ If the image is built from a branch that is not ``prod``, and the
 set to a value derived from the branch name.  This prevents building
 standard containers from branches other than ``prod``.
 
+.. _make-retag:
+
 Input Parameters For "Retag" Target
 -----------------------------------
 
