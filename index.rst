@@ -162,7 +162,7 @@ Input Parameters for Build Targets
    ``r`` in the output version.
 #. ``image`` -- optional: this is the URI for the image you're building
    and pushing.  It defaults to
-   ``docker.io/lsstsqre/sciplat-lab,us-central1-docker.pkg.dev/rubin-shared-services-71ec/sciplat/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab``.
+   ``docker.io/lsstsqre/sciplat-lab,us-central1-docker.pkg.dev/rubin-shared-services-71ec/sciplat/sciplat-lab``.
    As the default makes plain, it may be a comma-separated list of URIs,
    if you are pushing to multiple targets.
 #. ``input`` -- optional: this is the name, and any tag prefix, of the
