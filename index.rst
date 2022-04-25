@@ -124,18 +124,47 @@ Once your changes are on ``main``, in the usual case where ``main`` and
 Build Process
 =============
 
-GNU Make is used to drive the build process.  The Makefile accepts three
-arguments and has three useful targets.
+GNU Make is used to drive the build and tagging process.  The Makefile
+has four useful targets and accepts four arguments (one or two
+mandatory, depending on the target).
 
-The arguments are as follows:
+The targets are one of:
+
+#. ``clean`` -- remove the generated ``Dockerfile``.  Not terribly
+   useful on its own, but a good first step before running the next
+   target (because the template rarely changes, ``make`` cannot tell on
+   its own that the ``Dockerfile`` needs rebuilding when the arguments
+   change).
+#. ``dockerfile`` -- just generate the Dockerfile from the template and
+   the arguments.  Do not build or push.
+#. ``image`` -- build the Lab container, but do not push it.
+#. ``push`` -- build and push the container.
+#. ``retag`` -- attach a new tag to an already-built image.  The meaning
+   of the input parameters differs slightly here, and will be treated
+   separately.
+
+``push`` is the default, and ``all`` is a synonym for it.  ``build`` is a
+synonym for ``image``.  Note that we assume that the building user
+already has appropriate push credentials for the repository to which the
+image is pushed, and that any necessary ``docker login`` has already
+been performed.
+
+If the image is built from a branch that is not ``prod``, and the
+``supplementary`` tag is not specified, the supplementary tag will be
+set to a value derived from the branch name.  This prevents building
+standard containers from branches other than ``prod``.
+
+Input Parameters for Build Targets
+----------------------------------
 
 #. ``tag`` -- mandatory: this is the tag on the input DM Stack container,
    e.g. ``w_2021_50``.  If it starts with a ``v`` that ``v`` becomes an
    ``r`` in the output version.
 #. ``image`` -- optional: this is the URI for the image you're building
-   and pushing.  It defaults to ``docker.io/lsstsqre/sciplat-lab``.  It
-   may be a comma-separated list of URIs, if you are pushing to multiple
-   targets.
+   and pushing.  It defaults to
+   ``docker.io/lsstsqre/sciplat-lab,us-central1-docker.pkg.dev/rubin-shared-services-71ec/sciplat/sciplat-lab``.
+   As the default makes plain, it may be a comma-separated list of URIs,
+   if you are pushing to multiple targets.
 #. ``input`` -- optional: this is the name, and any tag prefix, of the
    input image you're starting with.  It defaults to
    ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
@@ -154,6 +183,9 @@ The arguments are as follows:
    experimental build where the tag starts with ``exp_`` and ends with
    ``_<supplementary>``.
 
+Make Targets
+------------
+
 The targets are one of:
 
 #. ``clean`` -- remove the generated ``Dockerfile``.  Not terribly
@@ -165,6 +197,11 @@ The targets are one of:
    the arguments.  Do not build or push.
 #. ``image`` -- build the Lab container, but do not push it.
 #. ``push`` -- build and push the container.
+#. ``retag`` -- tag an already-created container with a new tag and push
+   that tag to the repositories specified in ``image``.  This is mainly
+   intended for moving the ``recommended`` tag when consensus is
+   achieved that an updated version is recommendable.
+   See :ref:`make-retag`.
 
 ``push`` is the default, and ``all`` is a synonym for it.  ``build`` is a
 synonym for ``image``.  Note that we assume that the building user
@@ -176,6 +213,47 @@ If the image is built from a branch that is not ``prod``, and the
 ``supplementary`` tag is not specified, the supplementary tag will be
 set to a value derived from the branch name.  This prevents building
 standard containers from branches other than ``prod``.
+
+.. _make-retag:
+
+Retagging an image to recommended with make retag
+-------------------------------------------------
+
+The "retag" target is primarily used for moving the recommended tag
+(although it can of course be used generically to add an arbitrary tag
+to any image).
+
+The meanings of the parameters for the ``retag`` target differ slightly
+from their meanings for the build targets.  This is described in detail
+below, but the following is the simplest and most common use of the
+target, which is simply to point "recommended" at a particular weekly:
+
+.. code-block:: sh
+
+   make retag tag=w_2022_12 supplementary=recommended
+
+This will pull ``w_2022_12`` from ``docker.io/lsstsqre/sciplat-lab``
+(the default), tag it as recommended, and push it back to both Docker
+Hub and Google Artifact Registry.
+
+Input Parameters For "Retag" Target
+-----------------------------------
+
+For ``retag`` a sciplat-lab container should be ``input``, and the name
+should not end in a colon.  The default is
+``docker.io/lsstsqre/sciplat-lab``.  This is subject to change if and
+when we move away from Docker Hub as our primary repository.
+
+``tag`` is the tag on the sciplat-lab input container, not the upstream
+DM stack tag (for the common case when the input tag is a weekly, they
+are identical).
+
+``supplementary`` is the new tag to be applied to the image.  No
+substitution is done.  It is mandatory in the ``retag`` case.
+
+``image`` retains the same meaning and default: it is the target
+repository to which the new tags should be pushed.
+
 
 Dockerfile template substitution
 --------------------------------
@@ -233,7 +311,17 @@ Build and push a Telescope and Site image based on their ``sal-sciplat`` image
 
 .. code-block:: sh
 
-   make tag=w_2021_49_c0023.008 input=ts-dockerhub.lsst.org/sal-sciplat: image=ts-dockerhub.lsst.org/sal-sciplat-lab
+   make tag=w_2021_49_c0023.008 input=ts-dockerhub.lsst.org/sal-sciplat: \
+   image=ts-dockerhub.lsst.org/sal-sciplat-lab
+
+Retag ``w_2022_12`` (from ghcr.io) as ``recommended`` and push to Docker
+Hub and GHCR:
+
+.. code-block:: sh
+
+   make tag=w_2022_12 input=ghcr.io/lsst-sqre/sciplat-lab \
+   image=docker.io/lsstsqre/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab \
+   supplementary=recommended
 
 
 Modifying Lab container Contents
