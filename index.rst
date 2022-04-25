@@ -216,11 +216,28 @@ standard containers from branches other than ``prod``.
 
 .. _make-retag:
 
+Retagging an image to recommended with make retag
+-------------------------------------------------
+
+The "retag" target is primarily used for moving the recommended tag
+(although it can of course be used generically to add an arbitrary tag
+to any image).
+
+The meanings of the parameters for the ``retag`` target differ slightly
+from their meanings for the build targets.  This is described in detail
+below, but the following is the simplest and most common use of the
+target, which is simply to point "recommended" at a particular weekly:
+
+.. code-block:: sh
+
+   make retag tag=w_2022_12 supplementary=recommended
+
+This will pull ``w_2022_12`` from ``docker.io/lsstsqre/sciplat-lab``
+(the default), tag it as recommended, and push it back to both Docker
+Hub and Google Artifact Registry.
+
 Input Parameters For "Retag" Target
 -----------------------------------
-
-The meaning and defaults for ``input``, ``tag``, and ``supplementary`` differ
-slightly for the ``retag`` target.
 
 For ``retag`` a sciplat-lab container should be ``input``, and the name
 should not end in a colon.  The default is
