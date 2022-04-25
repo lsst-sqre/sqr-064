@@ -201,6 +201,7 @@ The targets are one of:
    that tag to the repositories specified in ``image``.  This is mainly
    intended for moving the ``recommended`` tag when consensus is
    achieved that an updated version is recommendable.
+   See :ref:`make-retag`.
 
 ``push`` is the default, and ``all`` is a synonym for it.  ``build`` is a
 synonym for ``image``.  Note that we assume that the building user
