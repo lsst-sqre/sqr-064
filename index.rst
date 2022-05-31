@@ -353,18 +353,17 @@ Jenkins build job
 Build Action
 ^^^^^^^^^^^^
 
-In the action `Manually triggered build of sciplat-lab container
-<https://github.com/lsst-sqre/sciplat-lab/actions/workflows/build.yaml>`_,
-the ``input`` parameter is held constant.  This GitHub Action is only
-intended for building standard RSP Lab containers; thus the input
-container is fixed to ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
+The `Manually triggered build of sciplat-lab container
+<https://github.com/lsst-sqre/sciplat-lab/actions/workflows/build.yaml>`_
+builds RSP Lab containers on demand (the input is always the Stack
+container, ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
 
 The dropdown specifying the workflow branch should be left on ``prod``
 unless you're actually working on the workflow itself.  The next three
 boxes correspond to the ``tag``, ``supplementary``, and ``image``
 parameters, and push to Docker Hub and Google Artifact Registry by
-default; it is a comma-separated string.  (Indeed, all three of these
-are exactly the strings from the ``make`` parameters.)
+default; it is a comma-separated string (indeed, all three of these
+are exactly the strings from the ``make`` parameters).
 
 Finally, the ``push resulting image`` is set to ``true`` by default; it
 is a YAML string representing a boolean value, so if you want to build
