@@ -358,12 +358,13 @@ The `Manually triggered build of sciplat-lab container
 builds RSP Lab containers on demand (the input is always the Stack
 container, ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
 
-The dropdown specifying the workflow branch should be left on ``prod``
-unless you're actually working on the workflow itself.  The next three
-boxes correspond to the ``tag``, ``supplementary``, and ``image``
-parameters, and push to Docker Hub and Google Artifact Registry by
-default; it is a comma-separated string (indeed, all three of these
-are exactly the strings from the ``make`` parameters).
+The dropdown specifying branch should be set to the branch you want to
+build.  Remember that ``prod`` (rather than ``main``) is the branch that
+the CI system builds from.  The next three boxes correspond to the
+``tag``, ``supplementary``, and ``image`` parameters, and push to Docker
+Hub and Google Artifact Registry by default; it is a comma-separated
+string (indeed, all three of these are exactly the strings from the
+``make`` parameters).
 
 Finally, the ``push resulting image`` is set to ``true`` by default; it
 is a YAML string representing a boolean value, so if you want to build
@@ -376,9 +377,10 @@ The GitHub action `Manually triggered retag of sciplat-lab container
 <https://github.com/lsst-sqre/sciplat-lab/actions/workflows/retag.yaml>`_
 wraps the ``make retag`` target.
 
-Again, leave the workflow on ``prod`` unless you're actively developing
-the workflow itself.  The container tag should not include the
-repository: it is just the tag, e.g. ``w_2022_22``.
+Leave the workflow on ``prod`` unless you're actively developing the
+workflow itself: since no build is performed, the branch from which you
+run is immaterial.  The container tag should not include the repository:
+it is just the tag, e.g. ``w_2022_22``.
 
 The new tag (most likely ``recommended``) goes in the next box, and the
 output image is again the comma-separated string for container
