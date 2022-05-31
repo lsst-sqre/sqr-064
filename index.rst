@@ -323,6 +323,69 @@ Hub and GHCR:
    image=docker.io/lsstsqre/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab \
    supplementary=recommended
 
+GitHub Actions
+--------------
+
+The ``make`` targets ``image``, ``push``, and ``retag`` are all exposed
+as GitHub actions.  This is considerably more convenient than running
+``make`` locally if you are on a non-Intel architecture, possibly faster
+than a local build in any event, and will consume CPU and disk space
+that are someone else's problem, so the GitHub Actions are the preferred
+way to run these commands.
+
+Although it is possible to build the stack on arm64, and it should be
+possible to install all the RSP Lab components in that environment, this
+has never been attempted (to the best of our knowledge).  Further, all
+existing RSP instances are (as of May, 2022) x86_64 only.  Therefore if
+you try to build the Lab container on a non-Intel machine, you have to
+deal with emulating the Intel architecture as well as running all the
+work the build process itself does.
+
+Clicking buttons on the GitHub UI (or `sending HTTP requests to trigger
+the workflows
+<https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event>`_
+) is much easier.  A worked example of how to trigger a job, identify
+the run that ensued, and poll it for completion can be found in `the
+Jenkins build job
+<https://github.com/lsst-dm/jenkins-dm-jobs/blob/6459d0c6a7d9c4f14810d44fc5415a7ff9949940/pipelines/sqre/infra/build_sciplatlab.groovy#L70-L155>`_. 
+
+
+Build Action
+^^^^^^^^^^^^
+
+The `Manually triggered build of sciplat-lab container
+<https://github.com/lsst-sqre/sciplat-lab/actions/workflows/build.yaml>`_
+builds RSP Lab containers on demand (the input is always the Stack
+container, ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
+
+The dropdown specifying the workflow branch should be left on ``prod``
+unless you're actually working on the workflow itself.  The next three
+boxes correspond to the ``tag``, ``supplementary``, and ``image``
+parameters, and push to Docker Hub and Google Artifact Registry by
+default; it is a comma-separated string (indeed, all three of these
+are exactly the strings from the ``make`` parameters).
+
+Finally, the ``push resulting image`` is set to ``true`` by default; it
+is a YAML string representing a boolean value, so if you want to build
+but not push, either set it to ``false`` or the empty string.
+
+Retag Action
+^^^^^^^^^^^^
+
+The GitHub action `Manually triggered retag of sciplat-lab container
+<https://github.com/lsst-sqre/sciplat-lab/actions/workflows/retag.yaml>`_
+wraps the ``make retag`` target.
+
+Again, leave the workflow on ``prod`` unless you're actively developing
+the workflow itself.  The container tag should not include the
+repository: it is just the tag, e.g. ``w_2022_22``.
+
+The new tag (most likely ``recommended``) goes in the next box, and the
+output image is again the comma-separated string for container
+destinations.
+
+Once again, all three of these values are exactly the same strings that
+would go in the ``make`` parameters.
 
 Modifying Lab container Contents
 ================================
