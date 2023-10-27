@@ -46,11 +46,15 @@ This technote documents how sciplat-lab (the JupyterLab RSP container) is built.
 
 .. Add content here.
 
+Philosophy
+==========
+
+The dual-Python-environment design of the ``sciplat-lab`` container is described in `sqr-088<https://sqr-088.lsst.io>`.
+
 Repository
 ==========
 
-The Lab container resides at `the LSST SQuaRE GitHub sciplat-lab
-repository <https://github.com/lsst-sqre/sciplat-lab.git>`_.
+The assembly instructions for the Lab container reside at `the LSST SQuaRE GitHub sciplat-lab repository <https://github.com/lsst-sqre/sciplat-lab.git>`_.
 
 Layout
 ------
@@ -58,408 +62,165 @@ Layout
 There are several different categories of files in the repository
 directory.
 
-#. ``Makefile`` and ``Dockerfile.template`` directly control the build
-   process; GNU Make is used to generate a ``Dockerfile`` from the
-   template and arguments, and then ``docker build`` generates the
-   ``sciplat-lab`` container.  ``bld`` provides compatibility with our
-   old build system and is a wrapper for ``make``; it will be removed
-   soon.
+#. ``Dockerfile`` controls the build.
 
-#. The ``stage`` shell files are executed during the ``docker build``
-   and each control a fairly large section of the container build.
-   ``texlive.profile`` is used to control the build of ``TeX`` in the
-   container.
+#. ``static`` holds files copied as-is into the container.
 
-#. The other executable files, except for ``lsstlaunch.bash``, are used
-   during JupyterLab startup.  The most important, and most likely to
-   need modification, is ``runlab.sh``, which sets up the JupyterLab
-   environment prior to launching the Lab.
+#. ``scripts`` holds scripts run inside the container at various stages of the build.
 
-#. Everything else is copied into the container during build and
-   controls various runtime behaviors of the Lab.
+#. ``README.md`` describes the build process.
 
 Branch Conventions
 ------------------
 
 Standard Lab containers (that is, dailies, weeklies, release candidates,
-and releases) are built from the ``prod`` branch.  Experimental
+and releases) are built from the ``main`` branch.  Experimental
 containers may be built from any branch.  The build process enforces
 this condition, and will force the tag to an experimental one when
-building from a non-prod branch.
+building from any other branch than ``main``.
 
-Note that from the GitHub perspective, ``prod`` rather than ``main`` is
-the default branch.
-
-Updating the Default Branch
----------------------------
-
-#. Do your work in a ticket branch, as with any other repository.
-#. PR that ticket branch into ``main``.  Note that the default branch to
-   PR into is going to be ``prod`` and you will have to change the
-   selection to ``main``.
-#. Rebase (if possible) or cherry-pick the changes from ``main`` into
-   ``prod_update``.  At the time of writing, there's no difference
-   between ``main`` and ``prod_update``, but as we migrate between major
-   versions of JupyterLab, it is possible for the two branches to
-   diverge significantly (as they did in the JL2-JL3 transition).
-#. Merge ``prod_update`` into ``prod``.
-
-It is worth noting that the only place we use a PR in this process is
-getting changes into ``main``.  Typically you would build an
-experimental container from your branch, test that, and once satisfied,
-proceed with the PR.
-
-Once your changes are on ``main``, in the usual case where ``main`` and
-``prod_update`` do not differ, the following incantation will suffice::
-
-    git checkout main && \
-    git pull && \
-    git checkout prod_update && \
-    git rebase main && \
-    git push && \
-    git checkout prod && \
-    git merge prod_update && \
-    git push
-
-Build Process
+Build process
 =============
 
-GNU Make is used to drive the build and tagging process.  The Makefile
-has four useful targets and accepts four arguments (one or two
-mandatory, depending on the target).
-
-The targets are one of:
-
-#. ``clean`` -- remove the generated ``Dockerfile``.  Not terribly
-   useful on its own, but a good first step before running the next
-   target (because the template rarely changes, ``make`` cannot tell on
-   its own that the ``Dockerfile`` needs rebuilding when the arguments
-   change).
-#. ``dockerfile`` -- just generate the Dockerfile from the template and
-   the arguments.  Do not build or push.
-#. ``image`` -- build the Lab container, but do not push it.
-#. ``push`` -- build and push the container.
-#. ``retag`` -- attach a new tag to an already-built image.  The meaning
-   of the input parameters differs slightly here, and will be treated
-   separately.
-
-``push`` is the default, and ``all`` is a synonym for it.  ``build`` is a
-synonym for ``image``.  Note that we assume that the building user
-already has appropriate push credentials for the repository to which the
-image is pushed, and that any necessary ``docker login`` has already
-been performed.
-
-If the image is built from a branch that is not ``prod``, and the
-``supplementary`` tag is not specified, the supplementary tag will be
-set to a value derived from the branch name.  This prevents building
-standard containers from branches other than ``prod``.
-
-Input Parameters for Build Targets
-----------------------------------
-
-#. ``tag`` -- mandatory: this is the tag on the input DM Stack container,
-   e.g. ``w_2021_50``.  If it starts with a ``v`` that ``v`` becomes an
-   ``r`` in the output version.
-#. ``image`` -- optional: this is the URI for the image you're building
-   and pushing.  It defaults to
-   ``docker.io/lsstsqre/sciplat-lab,us-central1-docker.pkg.dev/rubin-shared-services-71ec/sciplat/sciplat-lab``.
-   As the default makes plain, it may be a comma-separated list of URIs,
-   if you are pushing to multiple targets.
-#. ``input`` -- optional: this is the name, and any tag prefix, of the
-   input image you're starting with.  It defaults to
-   ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
-
-   Note that if there is no tag prefix, the image name should end with a
-   colon, and also that if you do specify the input image, you're on
-   your own: SQuaRE expects its containers to be built on top of the DM
-   stack image.
-
-   If you're just adding things to the stack image for your input
-   container, you are likely to be fine, but it's entirely possible to
-   introduce version incompatibilities while so doing.  It is certainly
-   not going to work if you start with something that isn't based on the
-   stack image.
-#. ``supplementary`` -- optional: if specified, this turns the build into an
-   experimental build where the tag starts with ``exp_`` and ends with
-   ``_<supplementary>``.
-
-Make Targets
-------------
-
-The targets are one of:
-
-#. ``clean`` -- remove the generated ``Dockerfile``.  Not terribly
-   useful on its own, but a good first step before running the next
-   target (because the template rarely changes, ``make`` cannot tell on
-   its own that the ``Dockerfile`` needs rebuilding when the arguments
-   change).
-#. ``dockerfile`` -- just generate the Dockerfile from the template and
-   the arguments.  Do not build or push.
-#. ``image`` -- build the Lab container, but do not push it.
-#. ``push`` -- build and push the container.
-#. ``retag`` -- tag an already-created container with a new tag and push
-   that tag to the repositories specified in ``image``.  This is mainly
-   intended for moving the ``recommended`` tag when consensus is
-   achieved that an updated version is recommendable.
-   See :ref:`make-retag`.
-
-``push`` is the default, and ``all`` is a synonym for it.  ``build`` is a
-synonym for ``image``.  Note that we assume that the building user
-already has appropriate push credentials for the repository to which the
-image is pushed, and that any necessary ``docker login`` has already
-been performed.
-
-If the image is built from a branch that is not ``prod``, and the
-``supplementary`` tag is not specified, the supplementary tag will be
-set to a value derived from the branch name.  This prevents building
-standard containers from branches other than ``prod``.
-
-.. _make-retag:
-
-Retagging an image to recommended with make retag
--------------------------------------------------
-
-The "retag" target is primarily used for moving the recommended tag
-(although it can of course be used generically to add an arbitrary tag
-to any image).
-
-The meanings of the parameters for the ``retag`` target differ slightly
-from their meanings for the build targets.  This is described in detail
-below, but the following is the simplest and most common use of the
-target, which is simply to point "recommended" at a particular weekly:
-
-.. code-block:: sh
-
-   make retag tag=w_2022_12 supplementary=recommended
-
-This will pull ``w_2022_12`` from ``docker.io/lsstsqre/sciplat-lab``
-(the default), tag it as recommended, and push it back to both Docker
-Hub and Google Artifact Registry.
-
-Input Parameters For "Retag" Target
------------------------------------
-
-For ``retag`` a sciplat-lab container should be ``input``, and the name
-should not end in a colon.  The default is
-``docker.io/lsstsqre/sciplat-lab``.  This is subject to change if and
-when we move away from Docker Hub as our primary repository.
-
-``tag`` is the tag on the sciplat-lab input container, not the upstream
-DM stack tag (for the common case when the input tag is a weekly, they
-are identical).
-
-``supplementary`` is the new tag to be applied to the image.  No
-substitution is done.  It is mandatory in the ``retag`` case.
-
-``image`` retains the same meaning and default: it is the target
-repository to which the new tags should be pushed.
-
-
-Dockerfile template substitution
---------------------------------
-`Dockerfile.template
-<https://github.com/lsst-sqre/sciplat-lab/blob/main/Dockerfile.template>`_
-substitutes ``{{TAG}}``, ``{{IMAGE}}``, ``{{INPUT}}`` and
-``{{VERSION}}``.  Despite the fact that we use double-curly-brackets,
-the substitution is nothing as sophisticated as Jinja 2: instead, we
-just run ``sed`` in the ``dockerfile`` target of the
-`Makefile <https://github.com/lsst-sqre/sciplat-lab/blob/main/Makefile>`_.
-
-
-Examples
---------
-
-Build and push the weekly 2021_50 container:
-
-.. code-block:: sh
-
-    make tag=w_2021_50
-
-Build and push an experimental container with a ``newnumpy``
-supplementary tag:
-
-.. code-block:: sh
-
-   make tag=w_2021_50 supplementary=newnumpy
-
-Just create the ``Dockerfile`` for ``w_2021_49``:
-
-.. code-block:: sh
-
-   make dockerfile tag=w_2021_49
-
-Build the ``newnumpy`` container, but don't push it:
-
-.. code-block:: sh
-
-   make image tag=w_2021_50 supplementary=newnumpy
-
-Build and push ``w_2021_50`` to ``ghcr.io``:
-
-.. code-block:: sh
-
-   make tag=w_2021_50 image=ghcr.io/lsst-sqre/sciplat-lab
-
-Build and push ``w_2021_50`` to both ``docker.io`` and ``ghcr.io``:
-
-.. code-block:: sh
-
-   make tag=w_2021_50 image=docker.io/lsstsqre/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab
-
-Build and push a Telescope and Site image based on their ``sal-sciplat`` image
-(note differing tag format):
-
-.. code-block:: sh
-
-   make tag=w_2021_49_c0023.008 input=ts-dockerhub.lsst.org/sal-sciplat: \
-   image=ts-dockerhub.lsst.org/sal-sciplat-lab
-
-Retag ``w_2022_12`` (from ghcr.io) as ``recommended`` and push to Docker
-Hub and GHCR:
-
-.. code-block:: sh
-
-   make tag=w_2022_12 input=ghcr.io/lsst-sqre/sciplat-lab \
-   image=docker.io/lsstsqre/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab \
-   supplementary=recommended
-
-GitHub Actions
---------------
-
-The ``make`` targets ``image``, ``push``, and ``retag`` are all exposed
-as GitHub actions.  This is considerably more convenient than running
-``make`` locally if you are on a non-Intel architecture, possibly faster
-than a local build in any event, and will consume CPU and disk space
-that are someone else's problem, so the GitHub Actions are the preferred
-way to run these commands.
-
-Although it is possible to build the stack on arm64, and it should be
-possible to install all the RSP Lab components in that environment, this
-has never been attempted (to the best of our knowledge).  Further, all
-existing RSP instances are (as of May, 2022) x86_64 only.  Therefore if
-you try to build the Lab container on a non-Intel machine, you have to
-deal with emulating the Intel architecture as well as running all the
-work the build process itself does.
-
-Clicking buttons on the GitHub UI (or `sending HTTP requests to trigger
-the workflows
-<https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event>`_
-) is much easier.  A worked example of how to trigger a job, identify
-the run that ensued, and poll it for completion can be found in `the
-Jenkins build job
-<https://github.com/lsst-dm/jenkins-dm-jobs/blob/6459d0c6a7d9c4f14810d44fc5415a7ff9949940/pipelines/sqre/infra/build_sciplatlab.groovy#L70-L155>`_. 
-
-
-Build Action
-^^^^^^^^^^^^
-
-The `Manually triggered build of sciplat-lab container
-<https://github.com/lsst-sqre/sciplat-lab/actions/workflows/build.yaml>`_
-builds RSP Lab containers on demand (the input is always the Stack
-container, ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
-
-The dropdown specifying branch should be set to the branch you want to
-build.  Remember that ``prod`` (rather than ``main``) is the branch that
-the CI system builds from.  The next three boxes correspond to the
-``tag``, ``supplementary``, and ``image`` parameters, and push to Docker
-Hub and Google Artifact Registry by default; it is a comma-separated
-string (indeed, all three of these are exactly the strings from the
-``make`` parameters).
-
-Finally, the ``push resulting image`` is set to ``true`` by default; it
-is a YAML string representing a boolean value, so if you want to build
-but not push, either set it to ``false`` or the empty string.
-
-Retag Action
-^^^^^^^^^^^^
-
-The GitHub action `Manually triggered retag of sciplat-lab container
-<https://github.com/lsst-sqre/sciplat-lab/actions/workflows/retag.yaml>`_
-wraps the ``make retag`` target.
-
-Leave the workflow on ``prod`` unless you're actively developing the
-workflow itself: since no build is performed, the branch from which you
-run is immaterial.  The container tag should not include the repository:
-it is just the tag, e.g. ``w_2022_22``.
-
-The new tag (most likely ``recommended``) goes in the next box, and the
-output image is again the comma-separated string for container
-destinations.
-
-Once again, all three of these values are exactly the same strings that
-would go in the ``make`` parameters.
-
-Modifying Lab container Contents
+The `build process<https://github.com/lsst-sqre/sciplat-lab/blob/main/.github/workflows/build.yaml>`_ is usually run from GitHub Actions.
+
+It is, however, also possible to build the container locally.
+The container builds on both ``amd64`` and ``arm64`` architectures for Linux.  Other architectures are not supported.
+
+
+GitHub Actions input parameters for build
+-----------------------------------------
+
+#. ``tag`` -- mandatory: this is the tag from which to install the DM Stack, e.g. ``w_2026_14``.
+   If it begins with a ``v`` (indicating a DM Stack release version) that ``v`` becomes an ``r`` in the output version.
+#.  ``supplementary`` -- optional: this (with a prepended ``_``) is the text added to the end of the container tag (`exp_` will be automatically prepended).
+   Usually this should describe the reason for the experimental container's existence, e.g. a value of ``rje`` used on a build from version tag ``d_2026_04_22`` would yield ``exp_d_2026_04_22_rje``.
+#. ``image`` -- optional: this is the URI for the image you're building and pushing.
+   It defaults to ``us-central1-docker.pkg.dev/rubin-shared-services-71ec/sciplat/sciplat-lab,ghcr.io/lsst-sqre/sciplat-lab,docker.io/lsstsqre/sciplat-lab``.
+   As the default makes plain, it may be a comma-separated list of URIs, if you are pushing to multiple targets.
+   If you are building an experimental image, you probably want to remove the ``ghcr.io`` and ``docker.io`` targets, assuming you're running at the IDF.
+   If you need to run at USDF, only keep the ``ghcr.io`` target.
+#. ``input`` -- optional: this is the name, and any tag prefix, of the input image you're starting with.
+   It defaults to ``ghcr.io/lsst-sqre/nublado-jupyterlab-base:latest``.
+   You almost certainly only want to change the tag.
+   If you have built a modified base image (by opening a PR against `nublado <https://github.com/lsst-sqre/nublado`_ and changing things inside ``jupyterlab-base``), then the tag will be something like ``tickets-DM-53996``.
+   The tag is case-sensitive, and dashes will replace slashes in the branch name.
+
+Local build
+-----------
+
+Set ``ARGS`` for ``tag``, ``input``, and ``version``.
+The ``tag`` and ``input`` are as described above.
+To calculate ``version`` from the tag, set the environment variables ``tag``, ``image``, and ``supplementary`` (all as described above), source the `helper functions<https://github.com/lsst-sqre/sciplat-lab/blob/main/scripts/helper-functions.sh>`_, and use the output of ```calculate_tags | cut -d ',' -f 1``.
+
+Retagging an image
+==================
+
+There is also a process for retagging an image.
+We typically use this for moving the recommended tag, but it can be used to add an arbitrary tag to any image.
+
+This too is a `Github Action<https://github.com/lsst-sqre/sciplat-lab/blob/main/.github/workflows/retag.yaml>`_.
+
+Github Actions input Parameters For Retag
+-----------------------------------------
+
+``tag`` is the tag on the sciplat-lab input container, not the upstream DM Stack tag (for the case when the input tag represents a weekly build, they are identical, but for release versions, the DM Stack tag ``v<something>`` will have become the sciplat-lab tag ``r<something>``).
+
+``supplementary`` is the new tag to be applied to the image.
+No substitution is done.
+It is mandatory in the ``retag`` case.
+
+``image`` retains the same meaning and default: it is the target repository (or comma-separated list of repositories) to which the new tags should be pushed.
+
+Lab build process
+=================
+
+When ``docker build`` runs, the following sequence of events takes place.
+
+#. We copy ``/etc/passwd`` and ``/etc/group`` into place and generate their corresponding shadow files.
+   This is necessary for the package installation in the next step to run, as ``dpkg`` assumes that accounts that either came with the base system or were installed by dependencies stayed installed; it uses them during installation.
+#. We run ``scripts/install-system-packages``; this first updates installed system packages, as the ``jupyterlab-base`` image may be out of date, since it will date to the last release of ``Nublado``.
+   Then we add system packages that we want in the RSP image, but not in the base container.
+   Currently that's ``ssh``, ``quota``, and ``emacs-nox``.
+#. We copy most of our static files into the container.
+#. We install the DM Stack from the supplied ``tag`` using `lsstinstall<https://ls.st/lsstinstall>`_, then strip it down as much as possible.
+#. We install remaining static files whose operation depends on the stack.
+#. We run `install_rsp_user<https://github.com/lsst-sqre/sciplat-lab/blob/main/scripts/install-rsp-user>` to create the environment in which an RSP user works.
+   This is the piece you are most likely to need to modify.
+   There are several phases of installation for the RSP User environment.
+
+   * First is ``rubin-env-rsp``.
+     This is a conda metapackage, defined in the `feedstock recipe<https://github.com/conda-forge/rubinenv-feedstock/blob/main/recipe/recipe.yaml>`_.  Its version is pinned to the version of ``rubin-env`` installed with ``lsstinstall``, and we do not update dependencies.
+     However, that doesn't mean that rebuilds of the same version separated by time will necessarily have all the same package versions.
+     Although the DM Stack installation does lock its direct dependencies, it lets its transitive dependencies float.
+     This has not been a huge operational problem thus far, but it is a lurking source of anxiety.
+   * Next we add four Telescope and Site packages from their conda channel, which is *not* conda-forge.
+     We also do not update dependencies for those.
+     It would be very helpful if these were put onto conda-forge and then just added to ``rubin-env-rsp`` but neither SQuaRE nor T&S wants to accept responsibility for their maintenance as conda-forge packages, so we seem to be stuck with the status quo.
+   * Next, we have a few tech debt steps.
+     The desire to support old releases and have reasonable reproducibility of a particular release is at odds with CST's desire to add new features to old releases at will.
+     We are currently (April 2026) in negotiations with Build Engineering and Pipelines to require a new point version of an old release if additional functionality is requested.
+     That would eliminate these steps, as packages would just be added to a backport branch of the feedstock and a new point release then made.
+   * Until we are done with the 29.x series of releases (post-DP2), we then must check to see whether ``lsdb`` has been installed already, and if not, install ``lsdb``, ``hats``, and ``cdshealpix``.
+   * Then we do the same with ``reproject``.
+   * If we had packages we had to ``pip`` install into the conda environment, we would do it here.
+     Right now we do not and we hope to hold the line; pip-installing on top of conda leads really, really easily to dependency hell.
+   * Here endeth the tech debt steps.
+   * We install ``lsst-rsp`` separately.
+     We have deliberately chosen to exclude it from ``rubin-env-rsp`` because we want to be able to iterate it more quickly than we update the ``recommended`` image, and it is a SQuaRE-maintained package.
+   * We do conda cleanup.
+   * Now we switch to the UI Python environment and perform needed modifications there.
+     We deactivate the JupyterLab console (basically a fancy iPython REPL; apparently some people don't want to use a notebook for that).
+     Finally we install the spellchecker, which is very strangely designed and implemented, and which is included at CST's request.
+#. We install a small compatibility layer designed to ease the transition from the one-python model to the current model which separates the UI and payload Python environments.
+   This can very likely go away soon.
+#. We generate manifests for what's been installed.
+   This turns out to be very useful for debugging regressions, because generally only a handful of packages change day-to-day, and the nature of the regression usually gives a good clue as to which package is the likely culprit.
+#. Finally, we clean up files left behind by the build process.
+
+Modifying Lab container contents
 ================================
 
 This is probably why you're reading this document.
+It's very likely that whatever changes you make will go into the ``install-rsp-user`` script.
+The most common scenario is that you want to try out a new conda package for inclusion before you add it to ``rubin-env-rsp``.
+In that case you'd add it between installation of ``rubin-env-rsp`` and ``lsst-rsp``.
 
-You will need to understand the structure of `Dockerfile.template
-<https://github.com/lsst-sqre/sciplat-lab/blob/main/Dockerfile.template>`_
-a little.  It is very likely that the piece you need to modify is in one
-of the ``stage*.sh`` scripts, although it is plausible that what you
-want is actually one of the container setup-at-runtime pieces.
+Building from a different base container
+========================================
 
-stage*.sh scripts
------------------
+It is quite possible that rather than changing anything in the payload environment, you want to modify the UI environment.
 
-Most of the action in the ``Dockerfile`` comes from five shell scripts
-executed by ``docker build`` as ``RUN`` actions.
+That is encapsulated in ``jupyterlab-base``, a part of `Nublado<https://github.com/lsst-sqre/nublado>`.
 
-These are, in order:
+Installing a package from GitHub
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. ``stage1-rpm.sh`` -- we will always be building on top of ``centos``
-   in the current regime.  This stage first reinstalls all the system
-   packages but with man pages this time (the Stack container isn't
-   really designed for interactive use, but ours is), and then adds some
-   RPM packages we require, or at least find helpful, for our user
-   environment.
-#. ``stage2-os.sh`` -- this installs os-level packages that are not
-   packaged via RPM.  Currently the biggest and hairiest of these is
-   TeXLive--the conda TeX packaging story is not good, and if we don't
-   install TeXLive a bunch of the export-as options in JupyterLab will
-   not work.
-#. ``stage3-py.sh`` -- this is probably where you're going to be
-   spending your time.  Mamba is faster and reports errors better than
-   conda, so we install and then use it.  Anything that is packaged as a
-   Conda package should be installed from conda-forge.  However, that's
-   not everything we need.  Thus, the first thing we do is add all the
-   Conda packages we need.  Then we do a pip install of the rest, and a
-   little bit of bookkeeping to create a kernel for the Stack Python.
-   It is likely that what you need to do will be done by inserting (or
-   pinning versions of) python packages in the mamba or pip sections.
-#. ``stage4-jup.sh`` -- this is for installation of Jupyter
-   packages--mostly Lab extensions, but there are also server and
-   notebook extensions we rely upon.  Use pre-built Lab extensions if at
-   all possible, which will mean they are packaged as conda-forge or
-   pip-installable packages and handled in the previous Python stage.
-#. ``stage5-ro.sh`` -- this is Rubin Observatory-specific setup.  This,
-   notably, creates quite a big layer because, among other things, it
-   checks out the tutorial notebooks as they existed at build time, and
-   people keep checking large figure outputs into these notebooks.
+The most common change to the base container is that you want to install something that is not available on PyPi--either it has not been released as a Python package yet, or it resides on a branch and you're testing it before merge.
 
-Other files
------------
-The rest of the files in this directory are either things copied to
-various well-known locations (for example, all the ``local*.sh`` files
-end up in ``/etc/profile.d``) or they control various aspects of the Lab
-startup process.  For the most part they are moved into the container by
-``COPY`` statements in the ``Dockerfile``.  They do not often need
-modification.
+In this case, you must edit the `jupyterlab-base pyproject.toml<https://github.com/lsst-sqre/nublado/blob/main/jupyterlab-base/pyproject.toml>`_ and then update ``uv.lock``.
 
-`runlab.sh
-<https://github.com/lsst-sqre/sciplat-lab/blob/main/runlab.sh>`_ is the
-other file you are likely to need to modify.  This is executed, as the
-target user, and the last thing it does is start ``jupyterlab`` (well,
-almost: it also knows if it's a dask worker or a noninteractive
-container, and does something different in those cases).
+#. Edit pyproject.toml, and add a ``[tools.uv.sources]`` entry at the bottom.
+As an example, if you wanted to install ``rsp-jupyter-extensions`` from branch ``tickets/DM-54736``, you'd add the following: ``rsp-jupyter-extensions = { git = "https://github.com/lsst-sqre/rsp-jupyter-extensions", branch = "tickets/DM-54736" }``
+#. Then run ``uv lock --upgrade-package``, e.g. ``uv lock --upgrade-package rsp-jupyter-extensions``.
+#. Commit the changes to your Nublado branch and push them.
+#. Create a PR from the branch and mark it as draft; you're never going to merge it, but the PR means that the corresponding containers will be built.
+#. As mentioned above, the container tag will replace slashes with dashes, but respect capitalization; thus in the above example, the container tag would be ``tickets-DM-54736``.
 
-Indentation conventions
------------------------
+After you've done that, you should go to the `sciplat-lab actions page<https://github.com/lsst-sqre/sciplat-lab/actions>`_ and kick off a build.
+Pick a supplementary tag, restrict the push targets as appropriate, and change the tag on the image field.
+Test that image, which you will find down near the bottom of the dropdown list in the experimental builds section on the Hub spawner page.
 
-There's a lot of shell scripting in here.  Please use four-space
-indentations, and convert tabs to spaces, if you're working on the
-scripts.
+Other changes
+^^^^^^^^^^^^^
+
+Other changes to the base container can be carried out as well.
+The layout is very similar to sciplat-lab, except that the various static files to be copied into the container are not (yet) consolidated.
+
+Scripts
+=======
+
+If you are working on the shell scripts (for either ``jupyterlab-base`` or ``sciplat-lab``), please use four-space indentations and convert tabs to spaces.
 
 .. Do not include the document title (it's automatically added from metadata.yaml).
 
