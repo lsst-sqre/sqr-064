@@ -82,44 +82,10 @@ Branch Conventions
 ------------------
 
 Standard Lab containers (that is, dailies, weeklies, release candidates,
-and releases) are built from the ``prod`` branch.  Experimental
+and releases) are built from the ``main`` branch.  Experimental
 containers may be built from any branch.  The build process enforces
 this condition, and will force the tag to an experimental one when
-building from a non-prod branch.
-
-Note that from the GitHub perspective, ``prod`` rather than ``main`` is
-the default branch.
-
-Updating the Default Branch
----------------------------
-
-#. Do your work in a ticket branch, as with any other repository.
-#. PR that ticket branch into ``main``.  Note that the default branch to
-   PR into is going to be ``prod`` and you will have to change the
-   selection to ``main``.
-#. Rebase (if possible) or cherry-pick the changes from ``main`` into
-   ``prod_update``.  At the time of writing, there's no difference
-   between ``main`` and ``prod_update``, but as we migrate between major
-   versions of JupyterLab, it is possible for the two branches to
-   diverge significantly (as they did in the JL2-JL3 transition).
-#. Merge ``prod_update`` into ``prod``.
-
-It is worth noting that the only place we use a PR in this process is
-getting changes into ``main``.  Typically you would build an
-experimental container from your branch, test that, and once satisfied,
-proceed with the PR.
-
-Once your changes are on ``main``, in the usual case where ``main`` and
-``prod_update`` do not differ, the following incantation will suffice::
-
-    git checkout main && \
-    git pull && \
-    git checkout prod_update && \
-    git rebase main && \
-    git push && \
-    git checkout prod && \
-    git merge prod_update && \
-    git push
+building from any other branch than ``main``.
 
 Build Process
 =============
@@ -149,10 +115,10 @@ already has appropriate push credentials for the repository to which the
 image is pushed, and that any necessary ``docker login`` has already
 been performed.
 
-If the image is built from a branch that is not ``prod``, and the
+If the image is built from a branch that is not ``main``, and the
 ``supplementary`` tag is not specified, the supplementary tag will be
 set to a value derived from the branch name.  This prevents building
-standard containers from branches other than ``prod``.
+standard containers from branches other than ``main``.
 
 Input Parameters for Build Targets
 ----------------------------------
@@ -209,10 +175,10 @@ already has appropriate push credentials for the repository to which the
 image is pushed, and that any necessary ``docker login`` has already
 been performed.
 
-If the image is built from a branch that is not ``prod``, and the
+If the image is built from a branch that is not ``main``, and the
 ``supplementary`` tag is not specified, the supplementary tag will be
 set to a value derived from the branch name.  This prevents building
-standard containers from branches other than ``prod``.
+standard containers from branches other than ``main``.
 
 .. _make-retag:
 
@@ -358,13 +324,10 @@ The `Manually triggered build of sciplat-lab container
 builds RSP Lab containers on demand (the input is always the Stack
 container, ``docker.io/lsstsqre/centos:7-stack-lsst_distrib-``.
 
-The dropdown specifying branch should be set to the branch you want to
-build.  Remember that ``prod`` (rather than ``main``) is the branch that
-the CI system builds from.  The next three boxes correspond to the
-``tag``, ``supplementary``, and ``image`` parameters, and push to Docker
-Hub and Google Artifact Registry by default; it is a comma-separated
-string (indeed, all three of these are exactly the strings from the
-``make`` parameters).
+The next three boxes correspond to the ``tag``, ``supplementary``, and
+``image`` parameters, and push to Docker Hub and Google Artifact
+Registry by default; it is a comma-separated string (indeed, all three
+of these are exactly the strings from the ``make`` parameters).
 
 Finally, the ``push resulting image`` is set to ``true`` by default; it
 is a YAML string representing a boolean value, so if you want to build
@@ -377,7 +340,7 @@ The GitHub action `Manually triggered retag of sciplat-lab container
 <https://github.com/lsst-sqre/sciplat-lab/actions/workflows/retag.yaml>`_
 wraps the ``make retag`` target.
 
-Leave the workflow on ``prod`` unless you're actively developing the
+Leave the workflow on ``main`` unless you're actively developing the
 workflow itself: since no build is performed, the branch from which you
 run is immaterial.  The container tag should not include the repository:
 it is just the tag, e.g. ``w_2022_22``.
