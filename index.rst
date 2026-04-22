@@ -227,7 +227,7 @@ The most common scenario is that you want to try out a new conda package for inc
 In that case you'd add your new package to ``install-rsp-user`` in between installation of ``rubin-env-rsp`` and ``lsst-rsp``.
 When you're happy with the package, create an RFC proposing the addition of the package to ``rubin-env`` or ``rubin-env-rsp`` (depending on whether the functionality is RSP-specific or more general).
 Combine that with a PR to `rubinenv-feedstock <https://github.com/conda-forge/rubinenv-feedstock>`__.
-Follow the `"Updating rubin-env-feedstock" instructions <https://github.com/conda-forge/rubinenv-feedstock/tree/main#updating-rubin-env-feedstock>`__.
+Follow the "Updating rubin-env-feedstock" instructions found there.
 
 Other changes
 -------------
