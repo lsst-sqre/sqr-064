@@ -1,1 +1,6 @@
 _build/
+.technote/
+.tox/
+venv/
+.venv/
+.DS_Store
