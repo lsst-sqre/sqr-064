@@ -258,7 +258,7 @@ Installing a package from GitHub
 
 The most common change to the base container is that you want to install something that is not available on PyPi--either it has not been released as a Python package yet, or it resides on a branch and you're testing it before merge.
 
-In this case, you must edit the `jupyterlab-base pyproject.toml <https://github.com/lsst-sqre/nublado/blob/main/jupyterlab-base/pyproject.toml>`__ and then update ``uv.lock``.
+In this case, you must edit the `main pyproject.toml <https://github.com/lsst-sqre/nublado/blob/main/pyproject.toml>`__ and then update ``uv.lock``.  Note that even though this is a package in the lab group, which is defined in the ``jupyterlab-base`` pyproject file, you have to make the change in the main one.
 
 #. Edit pyproject.toml, and add a ``[tools.uv.sources]`` entry at the bottom.
 
